@@ -2,7 +2,15 @@
 
 Kom igång med Podcast Transcriber på 5 minuter!
 
-## 1️⃣ Installera dependencies
+## 1️⃣ Klona projektet
+
+```bash
+# Klona från GitHub
+git clone https://github.com/cgillinger/podtranscript.git
+cd podtranscript
+```
+
+## 2️⃣ Installera dependencies
 
 ```bash
 # Installera Python och pip (om du inte har det)
@@ -17,13 +25,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 2️⃣ Kör skriptet
+## 3️⃣ Kör skriptet
 
 ```bash
 python3 podcast_transcriber.py
 ```
 
-## 3️⃣ Följ instruktionerna
+## 4️⃣ Följ instruktionerna
 
 1. Ange RSS-URL (exempel: `https://feeds.example.com/podcast.xml`)
 2. Välj filtrering (Alla / Nya / Datum)

@@ -29,15 +29,13 @@ sudo apt update
 sudo apt install python3 python3-pip python3-venv
 ```
 
-### Steg 2: Klona eller ladda ner detta projekt
+### Steg 2: Klona projektet från GitHub
 
 ```bash
 cd ~
-git clone <din-repo-url>
+git clone https://github.com/cgillinger/podtranscript.git
 cd podtranscript
 ```
-
-Eller skapa mappen manuellt och kopiera filerna.
 
 ### Steg 3: Skapa virtuell miljö (rekommenderas)
 

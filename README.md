@@ -7,7 +7,8 @@ Ett Python-skript för att automatiskt ladda ner och transkribera podcasts från
 ✅ **RSS Feed Support** - Hämta avsnitt från vilken podcast-RSS som helst
 ✅ **Automatisk Nedladdning** - Laddar ner MP3-filer automatiskt
 ✅ **Whisper Transkribering** - Använder OpenAI Whisper för högkvalitativ transkribering
-✅ **Smart Filnamn** - Automatisk namngivning baserat på datum och titel
+✅ **Intelligenta Filnamn** - Smart S##E### namngivning baserat på iTunes-metadata
+✅ **Metadata-extraktion** - Extraherar säsong/episod från RSS-taggar ELLER titel
 ✅ **Flexibel Filtrering** - Välj alla, nya, eller specifika datum
 ✅ **Europeiskt Datumformat** - DD-MM-ÅÅÅÅ format
 ✅ **State Management** - Håller koll på vad som redan transkriberarts
@@ -153,33 +154,96 @@ Efter körning skapas följande struktur:
 ```
 podcasts/
 ├── audio/                          # Nedladdade MP3-filer
-│   ├── 2024-01-15_Avsnitt_Titel.mp3
-│   ├── 2024-01-22_Annat_Avsnitt.mp3
+│   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.mp3
+│   ├── E347_2024-03-22_Breaking_News.mp3
+│   ├── BONUS_2026-01-08_Stargazing.mp3
 │   └── ...
 ├── transcripts/                    # Transkriberade textfiler
-│   ├── 2024-01-15_Avsnitt_Titel.txt
-│   ├── 2024-01-22_Annat_Avsnitt.txt
+│   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.txt
+│   ├── E347_2024-03-22_Breaking_News.txt
+│   ├── BONUS_2026-01-08_Stargazing.txt
 │   └── ...
 └── transcribed_episodes.json      # State-fil (spårar vad som transkriberrats)
 ```
 
-### Filnamnsformat
+### Intelligenta Filnamn
 
-- **Ljudfiler**: `ÅÅÅÅ-MM-DD_Avsnitt_Titel.mp3`
-- **Transkriptioner**: `ÅÅÅÅ-MM-DD_Avsnitt_Titel.txt`
+Skriptet använder ett **smart filnamnssystem** baserat på podcast RSS-metadata (iTunes-taggar och titelanalys):
 
-Filnamnen rensas automatiskt från ogiltiga tecken och mellanslag ersätts med understreck.
+#### Format-prioritering
+
+1. **Med säsong och episod**: `S05E083_2026-01-12_Episodtitel.mp3`
+   - Extraherar från `<itunes:season>` och `<itunes:episode>` taggar
+   - Eller parsar titel som "Season 5, Ep 83 - Titel"
+   - Exempel: `S02E015_2024-03-21_The_Future_of_AI.mp3`
+
+2. **Endast episodnummer**: `E347_2024-03-22_Episodtitel.mp3`
+   - När bara episodnummer finns tillgängligt
+   - Exempel: `E347_2024-03-22_Breaking_News.mp3`
+
+3. **Speciella typer** (bonus/trailer): `BONUS_2026-01-08_Episodtitel.mp3`
+   - För avsnitt markerade som bonus eller trailer
+   - Exempel: `TRAILER_2024-01-01_Season_3_Trailer.mp3`
+
+4. **Fallback** (datum + titel): `2024-02-14_Episodtitel.mp3`
+   - När ingen episode/season-metadata finns
+   - Exempel: `2024-02-14_Random_Podcast.mp3`
+
+#### Nummerpaddning
+
+- **Säsonger**: 2 siffror (S01, S02, ..., S99)
+- **Episoder**: 3-4 siffror (E001, E023, E1234)
+  - Automatisk expansion för episoder över 999
+
+#### Titelrensning
+
+Filnamnen rensas automatiskt:
+- Ogiltiga tecken tas bort (`<>:"/\|?*`)
+- Mellanslag ersätts med understreck
+- Max titellängd: 80 tecken
+- Datum i ISO 8601-format: `ÅÅÅÅ-MM-DD`
+
+#### Verkliga exempel
+
+**Hello From The Magic Tavern** (titeln innehåller "Season 5, Ep 83"):
+```
+Original: Season 5, Ep 83 - DQ in Pizza Hell (w/ Tim Ryder)
+Filnamn:  S05E083_2026-01-12_DQ_in_Pizza_Hell_(w_Tim_Ryder).mp3
+```
+
+**Samma podcast, bonus-avsnitt**:
+```
+Original: Patreon Unlock: Stargazing
+Filnamn:  BONUS_2026-01-08_Stargazing.mp3
+```
+
+**Podcast med iTunes-taggar**:
+```
+Original: The Future of AI
+iTunes:   <itunes:season>2</itunes:season> <itunes:episode>15</itunes:episode>
+Filnamn:  S02E015_2024-03-21_The_Future_of_AI.mp3
+```
+
+**Daglig nyhetspodcast** (bara episodnummer):
+```
+Original: Episode 347 - Breaking News
+Filnamn:  E347_2024-03-22_Breaking_News.mp3
+```
 
 ### Transkriptionsfil-innehåll
 
+Transkriptionsfiler innehåller metadata + transkription:
+
 ```
-Titel: Podcastens Titel - Avsnitt 123
-Publicerad: 15-01-2024
+Titel: Season 5, Ep 83 - DQ in Pizza Hell (w/ Tim Ryder)
+Säsong: 5, Avsnitt: 83
+Typ: Full
+Publicerad: 12-01-2026
 Källa: https://example.com/episode.mp3
 
 ================================================================================
 
-[Här kommer transkriberingen...]
+[Här kommer transkriberingen från Whisper...]
 ```
 
 ## Whisper-modeller

@@ -68,6 +68,83 @@ class PodcastTranscriber:
         # Begränsa längd
         return name[:200]
 
+    def _extract_episode_metadata(self, entry) -> Dict[str, Optional[str]]:
+        """
+        Extrahera episode/season metadata från RSS-entry.
+
+        Försöker först iTunes-taggar, sedan parsing av titel.
+        Returnerar dict med 'season', 'episode', 'episode_type', 'clean_title'
+        """
+        metadata = {
+            'season': None,
+            'episode': None,
+            'episode_type': None,
+            'clean_title': entry.get('title', 'Untitled')
+        }
+
+        # 1. Försök iTunes-taggar först
+        if hasattr(entry, 'itunes_season') and entry.itunes_season:
+            try:
+                metadata['season'] = int(entry.itunes_season)
+            except (ValueError, TypeError):
+                pass
+
+        if hasattr(entry, 'itunes_episode') and entry.itunes_episode:
+            try:
+                metadata['episode'] = int(entry.itunes_episode)
+            except (ValueError, TypeError):
+                pass
+
+        if hasattr(entry, 'itunes_episodetype') and entry.itunes_episodetype:
+            metadata['episode_type'] = entry.itunes_episodetype.lower()
+
+        # 2. Om iTunes-taggar saknas, försök parsa titeln
+        if metadata['season'] is None or metadata['episode'] is None:
+            title = entry.get('title', '')
+
+            # Mönster för olika titelformat:
+            # "Season 5, Ep 83 - Title"
+            # "S05E83 - Title"
+            # "5x83 - Title"
+            # "Episode 123 - Title"
+
+            patterns = [
+                # "Season 5, Ep 83 - Title" eller "Season 5, Episode 83 - Title"
+                r'Season\s+(\d+),?\s+Ep(?:isode)?\s+(\d+)\s*[-:–]\s*(.*)',
+                # "S05E83 - Title" eller "S5E83 - Title"
+                r'S(\d+)E(\d+)\s*[-:–]\s*(.*)',
+                # "5x83 - Title"
+                r'(\d+)x(\d+)\s*[-:–]\s*(.*)',
+                # Bara "Episode 123 - Title" (ingen säsong)
+                r'Ep(?:isode)?\s+(\d+)\s*[-:–]\s*(.*)',
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, title, re.IGNORECASE)
+                if match:
+                    groups = match.groups()
+
+                    if len(groups) == 3:
+                        # Season + Episode + Title
+                        metadata['season'] = int(groups[0])
+                        metadata['episode'] = int(groups[1])
+                        metadata['clean_title'] = groups[2].strip()
+                    elif len(groups) == 2:
+                        # Endast Episode + Title (ingen säsong)
+                        metadata['episode'] = int(groups[0])
+                        metadata['clean_title'] = groups[1].strip()
+                    break
+
+        # 3. Kolla efter speciella episodtyper i titeln
+        if metadata['episode_type'] is None:
+            title_lower = metadata['clean_title'].lower()
+            if any(word in title_lower for word in ['bonus', 'patreon unlock']):
+                metadata['episode_type'] = 'bonus'
+            elif 'trailer' in title_lower:
+                metadata['episode_type'] = 'trailer'
+
+        return metadata
+
     def fetch_feed(self, rss_url: str) -> List[Dict]:
         """Hämta och parsa RSS-feed"""
         print(f"\nHämtar RSS-feed från {rss_url}...")
@@ -109,12 +186,20 @@ class PodcastTranscriber:
                     except:
                         pass
 
+                # Extrahera episode/season metadata
+                metadata = self._extract_episode_metadata(entry)
+
                 episode = {
                     'title': entry.get('title', 'Untitled'),
                     'audio_url': audio_url,
                     'published': pub_date,
                     'guid': entry.get('id', audio_url),  # Unik identifierare
-                    'description': entry.get('summary', '')
+                    'description': entry.get('summary', ''),
+                    # Ny metadata
+                    'season': metadata['season'],
+                    'episode': metadata['episode'],
+                    'episode_type': metadata['episode_type'],
+                    'clean_title': metadata['clean_title']
                 }
                 episodes.append(episode)
 
@@ -157,13 +242,59 @@ class PodcastTranscriber:
         return []
 
     def _generate_filename(self, episode: Dict) -> str:
-        """Generera filnamn baserat på datum och titel"""
-        date_str = ""
-        if episode['published']:
-            date_str = episode['published'].strftime("%Y-%m-%d") + "_"
+        """
+        Generera filnamn baserat på tillgänglig metadata.
 
-        title_clean = self._sanitize_filename(episode['title'])
-        return f"{date_str}{title_clean}"
+        Prioritetsordning:
+        1. S##E### + Datum + Titel (om både säsong och episod finns)
+        2. E### + Datum + Titel (om bara episod finns)
+        3. EPISODTYP + Datum + Titel (om speciell typ utan nummer)
+        4. Datum + Titel (fallback)
+        """
+        parts = []
+
+        # 1. Episode/Season prefix
+        if episode.get('season') is not None and episode.get('episode') is not None:
+            # Både säsong och episod: S05E083
+            season_str = f"S{episode['season']:02d}"
+            # Dynamisk padding för episod (minst 3 siffror, mer om behövs)
+            ep_num = episode['episode']
+            if ep_num < 1000:
+                episode_str = f"E{ep_num:03d}"
+            else:
+                episode_str = f"E{ep_num:04d}"
+            parts.append(f"{season_str}{episode_str}")
+
+        elif episode.get('episode') is not None:
+            # Bara episod: E083
+            ep_num = episode['episode']
+            if ep_num < 1000:
+                episode_str = f"E{ep_num:03d}"
+            else:
+                episode_str = f"E{ep_num:04d}"
+            parts.append(episode_str)
+
+        elif episode.get('episode_type') in ['bonus', 'trailer']:
+            # Speciell typ utan nummer: BONUS eller TRAILER
+            parts.append(episode['episode_type'].upper())
+
+        # 2. Datum
+        if episode.get('published'):
+            date_str = episode['published'].strftime("%Y-%m-%d")
+            parts.append(date_str)
+
+        # 3. Titel (använd clean_title om tillgänglig, annars title)
+        title = episode.get('clean_title') or episode.get('title', 'Untitled')
+        title_clean = self._sanitize_filename(title)
+
+        # Begränsa titellängd (max 80 tecken för själva titeln)
+        if len(title_clean) > 80:
+            title_clean = title_clean[:80]
+
+        parts.append(title_clean)
+
+        # Kombinera alla delar med understreck
+        return "_".join(parts)
 
     def download_audio(self, episode: Dict) -> Optional[Path]:
         """Ladda ner ljudfil"""
@@ -228,8 +359,19 @@ class PodcastTranscriber:
             # Spara transkription
             with open(transcript_path, 'w', encoding='utf-8') as f:
                 f.write(f"Titel: {episode['title']}\n")
+
+                # Episode/Season info
+                if episode.get('season') and episode.get('episode'):
+                    f.write(f"Säsong: {episode['season']}, Avsnitt: {episode['episode']}\n")
+                elif episode.get('episode'):
+                    f.write(f"Avsnitt: {episode['episode']}\n")
+
+                if episode.get('episode_type'):
+                    f.write(f"Typ: {episode['episode_type'].title()}\n")
+
                 if episode['published']:
                     f.write(f"Publicerad: {episode['published'].strftime('%d-%m-%Y')}\n")
+
                 f.write(f"Källa: {episode['audio_url']}\n")
                 f.write("\n" + "="*80 + "\n\n")
                 f.write(result['text'])
@@ -239,6 +381,9 @@ class PodcastTranscriber:
             # Uppdatera state
             self.state[episode['guid']] = {
                 'title': episode['title'],
+                'season': episode.get('season'),
+                'episode': episode.get('episode'),
+                'episode_type': episode.get('episode_type'),
                 'published': episode['published'].isoformat() if episode['published'] else None,
                 'transcribed_date': datetime.now().isoformat(),
                 'audio_file': audio_path.name,

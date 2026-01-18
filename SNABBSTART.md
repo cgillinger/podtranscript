@@ -43,6 +43,17 @@ Dina filer hamnar i:
 - **Ljudfiler**: `podcasts/audio/`
 - **Transkriptioner**: `podcasts/transcripts/`
 
+### Filnamnsformat
+
+Skriptet skapar **intelligenta filnamn** baserat på metadata:
+
+- **Med säsong/episod**: `S05E083_2026-01-12_Episodtitel.mp3`
+- **Bara episod**: `E347_2024-03-22_Episodtitel.mp3`
+- **Bonus-avsnitt**: `BONUS_2026-01-08_Episodtitel.mp3`
+- **Fallback**: `2024-02-14_Episodtitel.mp3`
+
+Läser från iTunes-taggar ELLER parsar titel automatiskt!
+
 ## 💡 Tips
 
 ### Första gången

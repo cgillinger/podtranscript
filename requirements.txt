@@ -1,0 +1,21 @@
+# Podcast Transcriber Dependencies
+
+# RSS Feed Parsing
+feedparser==6.0.11
+
+# HTTP Requests
+requests==2.31.0
+
+# OpenAI Whisper for transcription
+openai-whisper==20231117
+
+# Date parsing
+python-dateutil==2.8.2
+
+# Progress bars
+tqdm==4.66.1
+
+# Additional dependencies for Whisper
+# (usually installed automatically with openai-whisper, but listed for clarity)
+torch>=2.0.0
+numpy>=1.20.0

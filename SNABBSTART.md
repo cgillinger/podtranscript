@@ -1,0 +1,57 @@
+# Snabbstart 🚀
+
+Kom igång med Podcast Transcriber på 5 minuter!
+
+## 1️⃣ Installera dependencies
+
+```bash
+# Installera Python och pip (om du inte har det)
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+
+# Skapa virtuell miljö
+python3 -m venv venv
+source venv/bin/activate
+
+# Installera required packages
+pip install -r requirements.txt
+```
+
+## 2️⃣ Kör skriptet
+
+```bash
+python3 podcast_transcriber.py
+```
+
+## 3️⃣ Följ instruktionerna
+
+1. Ange RSS-URL (exempel: `https://feeds.example.com/podcast.xml`)
+2. Välj filtrering (Alla / Nya / Datum)
+3. Bekräfta och vänta!
+
+## 📁 Resultat
+
+Dina filer hamnar i:
+- **Ljudfiler**: `podcasts/audio/`
+- **Transkriptioner**: `podcasts/transcripts/`
+
+## 💡 Tips
+
+### Första gången
+Välj **"Endast nya"** - första gången kommer alla avsnitt vara "nya"!
+
+### Kommande gånger
+Använd **"Endast nya"** igen för att bara transkribera nya avsnitt.
+
+### Specifikt datum
+Vill du bara ha avsnitt från mars 2024?
+- Från: `01-03-2024`
+- Till: `31-03-2024`
+
+## ❓ Problem?
+
+Se [README.md](README.md) för detaljerad felsökning!
+
+---
+
+**Nu kör vi! 🎙️→📝**

@@ -102,7 +102,20 @@ python3 podcast_transcriber.py
    - DD/MM/ÅÅÅÅ (t.ex. 15/03/2024)
    - DD.MM.ÅÅÅÅ (t.ex. 15.03.2024)
 
-5. **Bekräfta och vänta**
+5. **Välj sorteringsordning**
+   - **Börja med äldsta avsnittet** - Bearbetar från första till senaste (kronologisk ordning)
+   - **Börja med senaste avsnittet** - Bearbetar från senaste till första (omvänd ordning)
+
+   Skriptet visar vilka avsnitt som kommer först och sist:
+   ```
+   Sortering: äldsta → senaste
+   Första avsnittet som bearbetas: Season 1, Ep 1 - Pilot
+     Datum: 15-03-2015
+   Sista avsnittet som bearbetas: Season 5, Ep 83 - Latest Episode
+     Datum: 12-01-2026
+   ```
+
+6. **Bekräfta och vänta**
    - Skriptet visar hur många avsnitt som kommer bearbetas
    - Bekräfta med 'j' för att fortsätta
    - Vänta medan nedladdning och transkribering pågår

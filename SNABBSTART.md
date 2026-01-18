@@ -35,7 +35,8 @@ python3 podcast_transcriber.py
 
 1. Ange RSS-URL (exempel: `https://feeds.example.com/podcast.xml`)
 2. Välj filtrering (Alla / Nya / Datum)
-3. Bekräfta och vänta!
+3. Välj sorteringsordning (Äldsta först / Senaste först)
+4. Bekräfta och vänta!
 
 ## 📁 Resultat
 

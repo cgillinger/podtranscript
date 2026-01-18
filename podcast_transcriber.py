@@ -536,6 +536,33 @@ def main():
             print("\nInga avsnitt hittades i det datumintervallet.")
             return
 
+    # Fråga om sorteringsordning
+    sort_choice = get_user_choice(
+        "I vilken ordning vill du bearbeta avsnitten?",
+        ["Börja med äldsta avsnittet", "Börja med senaste avsnittet"]
+    )
+
+    if sort_choice == "Börja med äldsta avsnittet":
+        # Sortera äldst först (stigande datum)
+        filtered_episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=False)
+        sort_info = "äldsta → senaste"
+    else:
+        # Sortera nyast först (fallande datum) - redan sorterat så, men gör det explicit
+        filtered_episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=True)
+        sort_info = "senaste → äldsta"
+
+    # Visa information
+    if filtered_episodes:
+        first_ep = filtered_episodes[0]
+        last_ep = filtered_episodes[-1]
+        print(f"\nSortering: {sort_info}")
+        print(f"Första avsnittet som bearbetas: {first_ep['title']}")
+        if first_ep.get('published'):
+            print(f"  Datum: {first_ep['published'].strftime('%d-%m-%Y')}")
+        print(f"Sista avsnittet som bearbetas: {last_ep['title']}")
+        if last_ep.get('published'):
+            print(f"  Datum: {last_ep['published'].strftime('%d-%m-%Y')}")
+
     # Bekräftelse
     print(f"\n{len(filtered_episodes)} avsnitt kommer att laddas ner och transkriberas.")
     confirm = input("Fortsätt? (j/n): ").strip().lower()

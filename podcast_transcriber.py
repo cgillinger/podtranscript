@@ -166,6 +166,26 @@ class PodcastTranscriber:
         # Limit length to prevent filesystem issues
         return name[:200]
 
+    def _format_timestamp(self, seconds: float) -> str:
+        """
+        Convert seconds to HH:MM:SS timestamp format.
+
+        Args:
+            seconds: Time in seconds (float)
+
+        Returns:
+            Formatted timestamp string (HH:MM:SS)
+
+        Examples:
+            15.5 -> "00:00:15"
+            125.3 -> "00:02:05"
+            3665.0 -> "01:01:05"
+        """
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
     def _extract_episode_metadata(self, entry) -> Dict[str, Optional[str]]:
         """
         Extract episode/season metadata from RSS entry.
@@ -204,7 +224,7 @@ class PodcastTranscriber:
             'clean_title': entry.get('title', 'Untitled')
         }
 
-        # 1. Försök iTunes-taggar först
+        # 1. Try iTunes tags first
         if hasattr(entry, 'itunes_season') and entry.itunes_season:
             try:
                 metadata['season'] = int(entry.itunes_season)
@@ -220,25 +240,28 @@ class PodcastTranscriber:
         if hasattr(entry, 'itunes_episodetype') and entry.itunes_episodetype:
             metadata['episode_type'] = entry.itunes_episodetype.lower()
 
-        # 2. Om iTunes-taggar saknas, försök parsa titeln
+        # 2. If iTunes tags are missing, try parsing the title
         if metadata['season'] is None or metadata['episode'] is None:
             title = entry.get('title', '')
 
-            # Mönster för olika titelformat:
+            # Patterns for various title formats:
             # "Season 5, Ep 83 - Title"
             # "S05E83 - Title"
             # "5x83 - Title"
             # "Episode 123 - Title"
+            # "4 - Title" (just number)
 
             patterns = [
-                # "Season 5, Ep 83 - Title" eller "Season 5, Episode 83 - Title"
+                # "Season 5, Ep 83 - Title" or "Season 5, Episode 83 - Title"
                 r'Season\s+(\d+),?\s+Ep(?:isode)?\s+(\d+)\s*[-:–]\s*(.*)',
-                # "S05E83 - Title" eller "S5E83 - Title"
+                # "S05E83 - Title" or "S5E83 - Title"
                 r'S(\d+)E(\d+)\s*[-:–]\s*(.*)',
                 # "5x83 - Title"
                 r'(\d+)x(\d+)\s*[-:–]\s*(.*)',
-                # Bara "Episode 123 - Title" (ingen säsong)
+                # Just "Episode 123 - Title" (no season)
                 r'Ep(?:isode)?\s+(\d+)\s*[-:–]\s*(.*)',
+                # Just "4 - Title" (number at start without prefix)
+                r'^(\d+)\s*[-:–]\s*(.*)',
             ]
 
             for pattern in patterns:
@@ -252,12 +275,12 @@ class PodcastTranscriber:
                         metadata['episode'] = int(groups[1])
                         metadata['clean_title'] = groups[2].strip()
                     elif len(groups) == 2:
-                        # Endast Episode + Title (ingen säsong)
+                        # Only Episode + Title (no season)
                         metadata['episode'] = int(groups[0])
                         metadata['clean_title'] = groups[1].strip()
                     break
 
-        # 3. Kolla efter speciella episodtyper i titeln
+        # 3. Check for special episode types in the title
         if metadata['episode_type'] is None:
             title_lower = metadata['clean_title'].lower()
             if any(word in title_lower for word in ['bonus', 'patreon unlock']):
@@ -269,37 +292,37 @@ class PodcastTranscriber:
 
     def fetch_feed(self, rss_url: str) -> Tuple[str, List[Dict]]:
         """
-        Hämta och parsa RSS-feed.
+        Fetch and parse RSS feed.
 
         Returns:
-            Tuple med (podcast_title, episodes_list)
+            Tuple of (podcast_title, episodes_list)
         """
-        print(f"\nHämtar RSS-feed från {rss_url}...")
+        print(f"\nFetching RSS feed from {rss_url}...")
 
         try:
             feed = feedparser.parse(rss_url)
 
             if feed.bozo:
-                print(f"Varning: RSS-feeden kan ha problem: {feed.bozo_exception}")
+                print(f"Warning: RSS feed may have issues: {feed.bozo_exception}")
 
             if not feed.entries:
-                print("Fel: Inga avsnitt hittades i feeden")
+                print("Error: No episodes found in feed")
                 return ("Unknown Podcast", [])
 
-            # Extrahera podcast-titel från feed
+            # Extract podcast title from feed
             podcast_title = feed.feed.get('title', 'Unknown Podcast')
             print(f"📻 Podcast: {podcast_title}")
 
             episodes = []
             for entry in feed.entries:
-                # Hitta MP3-länk
+                # Find MP3 link
                 audio_url = None
                 for link in entry.get('links', []):
                     if 'audio' in link.get('type', '') or link.get('href', '').endswith('.mp3'):
                         audio_url = link['href']
                         break
 
-                # Fallback: kolla enclosures
+                # Fallback: check enclosures
                 if not audio_url and hasattr(entry, 'enclosures'):
                     for enclosure in entry.enclosures:
                         if 'audio' in enclosure.get('type', '') or enclosure.get('href', '').endswith('.mp3'):
@@ -309,7 +332,7 @@ class PodcastTranscriber:
                 if not audio_url:
                     continue
 
-                # Parsa publiceringsdatum
+                # Parse publication date
                 pub_date = None
                 if hasattr(entry, 'published'):
                     try:
@@ -317,16 +340,16 @@ class PodcastTranscriber:
                     except:
                         pass
 
-                # Extrahera episode/season metadata
+                # Extract episode/season metadata
                 metadata = self._extract_episode_metadata(entry)
 
                 episode = {
                     'title': entry.get('title', 'Untitled'),
                     'audio_url': audio_url,
                     'published': pub_date,
-                    'guid': entry.get('id', audio_url),  # Unik identifierare
+                    'guid': entry.get('id', audio_url),  # Unique identifier
                     'description': entry.get('summary', ''),
-                    # Ny metadata
+                    # New metadata
                     'season': metadata['season'],
                     'episode': metadata['episode'],
                     'episode_type': metadata['episode_type'],
@@ -334,61 +357,61 @@ class PodcastTranscriber:
                 }
                 episodes.append(episode)
 
-            # Sortera efter datum (nyast först)
+            # Sort by date (newest first)
             episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=True)
 
-            print(f"✓ Hittade {len(episodes)} avsnitt med ljudfiler")
+            print(f"✓ Found {len(episodes)} episodes with audio files")
             return (podcast_title, episodes)
 
         except Exception as e:
-            print(f"Fel vid hämtning av RSS-feed: {e}")
+            print(f"Error fetching RSS feed: {e}")
             return ("Unknown Podcast", [])
 
     def filter_episodes(self, episodes: List[Dict], mode: str,
                        start_date: Optional[datetime] = None,
                        end_date: Optional[datetime] = None) -> List[Dict]:
-        """Filtrera avsnitt baserat på användarens val"""
+        """Filter episodes based on user's choice"""
 
         if mode == "all":
             return episodes
 
         elif mode == "new":
-            # Filtrera bort redan transkriberade
+            # Filter out already transcribed episodes
             new_episodes = [ep for ep in episodes if ep['guid'] not in self.state]
-            print(f"✓ {len(new_episodes)} nya avsnitt (av {len(episodes)} totalt)")
+            print(f"✓ {len(new_episodes)} new episodes (of {len(episodes)} total)")
             return new_episodes
 
         elif mode == "date":
             if not start_date or not end_date:
-                print("Fel: Datumintervall saknas")
+                print("Error: Date range missing")
                 return []
 
             filtered = [
                 ep for ep in episodes
                 if ep['published'] and start_date <= ep['published'] <= end_date
             ]
-            print(f"✓ {len(filtered)} avsnitt i datumintervallet")
+            print(f"✓ {len(filtered)} episodes in date range")
             return filtered
 
         return []
 
     def _generate_filename(self, episode: Dict) -> str:
         """
-        Generera filnamn baserat på tillgänglig metadata.
+        Generate filename based on available metadata.
 
-        Prioritetsordning:
-        1. S##E### + Datum + Titel (om både säsong och episod finns)
-        2. E### + Datum + Titel (om bara episod finns)
-        3. EPISODTYP + Datum + Titel (om speciell typ utan nummer)
-        4. Datum + Titel (fallback)
+        Priority order:
+        1. S##E### + Date + Title (if both season and episode exist)
+        2. E### + Date + Title (if only episode exists)
+        3. EPISODETYPE + Date + Title (if special type without number)
+        4. Date + Title (fallback)
         """
         parts = []
 
         # 1. Episode/Season prefix
         if episode.get('season') is not None and episode.get('episode') is not None:
-            # Både säsong och episod: S05E083
+            # Both season and episode: S05E083
             season_str = f"S{episode['season']:02d}"
-            # Dynamisk padding för episod (minst 3 siffror, mer om behövs)
+            # Dynamic padding for episode (minimum 3 digits, more if needed)
             ep_num = episode['episode']
             if ep_num < 1000:
                 episode_str = f"E{ep_num:03d}"
@@ -397,7 +420,7 @@ class PodcastTranscriber:
             parts.append(f"{season_str}{episode_str}")
 
         elif episode.get('episode') is not None:
-            # Bara episod: E083
+            # Only episode: E083
             ep_num = episode['episode']
             if ep_num < 1000:
                 episode_str = f"E{ep_num:03d}"
@@ -406,39 +429,39 @@ class PodcastTranscriber:
             parts.append(episode_str)
 
         elif episode.get('episode_type') in ['bonus', 'trailer']:
-            # Speciell typ utan nummer: BONUS eller TRAILER
+            # Special type without number: BONUS or TRAILER
             parts.append(episode['episode_type'].upper())
 
-        # 2. Datum
+        # 2. Date
         if episode.get('published'):
             date_str = episode['published'].strftime("%Y-%m-%d")
             parts.append(date_str)
 
-        # 3. Titel (använd clean_title om tillgänglig, annars title)
+        # 3. Title (use clean_title if available, otherwise title)
         title = episode.get('clean_title') or episode.get('title', 'Untitled')
         title_clean = self._sanitize_filename(title)
 
-        # Begränsa titellängd (max 80 tecken för själva titeln)
+        # Limit title length (max 80 characters for the title itself)
         if len(title_clean) > 80:
             title_clean = title_clean[:80]
 
         parts.append(title_clean)
 
-        # Kombinera alla delar med understreck
+        # Combine all parts with underscores
         return "_".join(parts)
 
     def download_audio(self, episode: Dict) -> Optional[Path]:
-        """Ladda ner ljudfil"""
+        """Download audio file"""
         filename = self._generate_filename(episode)
         audio_path = self.audio_dir / f"{filename}.mp3"
 
-        # Skippa om redan nedladdat
+        # Skip if already downloaded
         if audio_path.exists():
-            print(f"  ↳ Ljudfil finns redan: {audio_path.name}")
+            print(f"  ↳ Audio file already exists: {audio_path.name}")
             return audio_path
 
         try:
-            print(f"  ↳ Laddar ner: {episode['title'][:60]}...")
+            print(f"  ↳ Downloading: {episode['title'][:60]}...")
             response = requests.get(episode['audio_url'], stream=True, timeout=30)
             response.raise_for_status()
 
@@ -449,66 +472,70 @@ class PodcastTranscriber:
                 unit='B',
                 unit_scale=True,
                 unit_divisor=1024,
-                desc="    Nedladdning"
+                desc="    Download"
             ) as pbar:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
                     pbar.update(len(chunk))
 
-            print(f"  ✓ Nedladdad: {audio_path.name}")
+            print(f"  ✓ Downloaded: {audio_path.name}")
             return audio_path
 
         except Exception as e:
-            print(f"  ✗ Fel vid nedladdning: {e}")
+            print(f"  ✗ Download error: {e}")
             if audio_path.exists():
                 audio_path.unlink()
             return None
 
     def transcribe_audio(self, audio_path: Path, episode: Dict) -> Optional[Path]:
-        """Transkribera ljudfil med Whisper"""
+        """Transcribe audio file with Whisper"""
         filename = audio_path.stem
         transcript_path = self.transcripts_dir / f"{filename}.txt"
 
-        # Skippa om redan transkriberad
+        # Skip if already transcribed
         if episode['guid'] in self.state:
-            print(f"  ↳ Redan transkriberad tidigare")
+            print(f"  ↳ Already transcribed previously")
             return transcript_path if transcript_path.exists() else None
 
         try:
-            # Ladda Whisper-modell (lazy loading)
+            # Load Whisper model (lazy loading)
             if self.whisper_model is None:
-                print("  ↳ Laddar Whisper-modell (kan ta en stund första gången)...")
+                print("  ↳ Loading Whisper model (may take a while the first time)...")
                 self.whisper_model = whisper.load_model("base")
 
-            print(f"  ↳ Transkriberar: {audio_path.name}...")
+            print(f"  ↳ Transcribing: {audio_path.name}...")
             result = self.whisper_model.transcribe(
                 str(audio_path),
-                verbose=False  # Auto-detekterar språk
+                verbose=False  # Auto-detects language
             )
 
-            # Spara transkription
+            # Save transcription with timestamps
             with open(transcript_path, 'w', encoding='utf-8') as f:
-                f.write(f"Titel: {episode['title']}\n")
+                f.write(f"Title: {episode['title']}\n")
 
                 # Episode/Season info
                 if episode.get('season') and episode.get('episode'):
-                    f.write(f"Säsong: {episode['season']}, Avsnitt: {episode['episode']}\n")
+                    f.write(f"Season: {episode['season']}, Episode: {episode['episode']}\n")
                 elif episode.get('episode'):
-                    f.write(f"Avsnitt: {episode['episode']}\n")
+                    f.write(f"Episode: {episode['episode']}\n")
 
                 if episode.get('episode_type'):
-                    f.write(f"Typ: {episode['episode_type'].title()}\n")
+                    f.write(f"Type: {episode['episode_type'].title()}\n")
 
                 if episode['published']:
-                    f.write(f"Publicerad: {episode['published'].strftime('%d-%m-%Y')}\n")
+                    f.write(f"Published: {episode['published'].strftime('%Y-%m-%d')}\n")
 
-                f.write(f"Källa: {episode['audio_url']}\n")
+                f.write(f"Source: {episode['audio_url']}\n")
                 f.write("\n" + "="*80 + "\n\n")
-                f.write(result['text'])
 
-            print(f"  ✓ Transkriberad: {transcript_path.name}")
+                # Write transcript with timestamps for each segment
+                for segment in result['segments']:
+                    timestamp = self._format_timestamp(segment['start'])
+                    f.write(f"[{timestamp}] {segment['text'].strip()}\n\n")
 
-            # Uppdatera state
+            print(f"  ✓ Transcribed: {transcript_path.name}")
+
+            # Update state
             self.state[episode['guid']] = {
                 'title': episode['title'],
                 'season': episode.get('season'),
@@ -524,42 +551,42 @@ class PodcastTranscriber:
             return transcript_path
 
         except Exception as e:
-            print(f"  ✗ Fel vid transkribering: {e}")
+            print(f"  ✗ Transcription error: {e}")
             return None
 
     def process_episodes(self, episodes: List[Dict]):
-        """Bearbeta lista av avsnitt"""
+        """Process list of episodes"""
         if not episodes:
-            print("\nInga avsnitt att bearbeta.")
+            print("\nNo episodes to process.")
             return
 
         print(f"\n{'='*80}")
-        print(f"Startar bearbetning av {len(episodes)} avsnitt")
+        print(f"Starting processing of {len(episodes)} episodes")
         print(f"{'='*80}\n")
 
         success_count = 0
         for i, episode in enumerate(episodes, 1):
             print(f"\n[{i}/{len(episodes)}] {episode['title']}")
 
-            # Ladda ner
+            # Download
             audio_path = self.download_audio(episode)
             if not audio_path:
                 continue
 
-            # Transkribera
+            # Transcribe
             transcript_path = self.transcribe_audio(audio_path, episode)
             if transcript_path:
                 success_count += 1
 
         print(f"\n{'='*80}")
-        print(f"✓ Klart! {success_count}/{len(episodes)} avsnitt transkriberade")
+        print(f"✓ Done! {success_count}/{len(episodes)} episodes transcribed")
         print(f"{'='*80}")
-        print(f"\nLjudfiler: {self.audio_dir}")
-        print(f"Transkriptioner: {self.transcripts_dir}")
+        print(f"\nAudio files: {self.audio_dir}")
+        print(f"Transcripts: {self.transcripts_dir}")
 
 
 def parse_date(date_str: str) -> Optional[datetime]:
-    """Parsa datum i europeiskt format"""
+    """Parse date in European format"""
     formats = [
         "%d-%m-%Y",
         "%d/%m/%Y",
@@ -577,13 +604,13 @@ def parse_date(date_str: str) -> Optional[datetime]:
 
 
 def get_user_choice(prompt: str, options: List[str]) -> str:
-    """Få användarval från lista"""
+    """Get user choice from list"""
     while True:
         print(f"\n{prompt}")
         for i, opt in enumerate(options, 1):
             print(f"  {i}. {opt}")
 
-        choice = input("\nDitt val (nummer): ").strip()
+        choice = input("\nYour choice (number): ").strip()
 
         try:
             idx = int(choice) - 1
@@ -592,121 +619,121 @@ def get_user_choice(prompt: str, options: List[str]) -> str:
         except ValueError:
             pass
 
-        print("Ogiltigt val, försök igen.")
+        print("Invalid choice, try again.")
 
 
 def main():
-    """Huvudfunktion"""
+    """Main function"""
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║         PODCAST TRANSCRIBER - RSS till Text med Whisper      ║
+║         PODCAST TRANSCRIBER - RSS to Text with Whisper       ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
 
-    # Få RSS-URL
-    rss_url = input("Ange RSS-URL för podcasten: ").strip()
+    # Get RSS URL
+    rss_url = input("Enter RSS URL for the podcast: ").strip()
 
     if not rss_url:
-        print("Fel: Ingen URL angiven")
+        print("Error: No URL provided")
         return
 
-    # Skapa temporär transcriber för att hämta feed-info
+    # Create temporary transcriber to fetch feed info
     temp_transcriber = PodcastTranscriber()
 
-    # Hämta podcast-titel och avsnitt
+    # Fetch podcast title and episodes
     podcast_title, episodes = temp_transcriber.fetch_feed(rss_url)
 
     if not episodes:
-        print("Inga avsnitt att bearbeta.")
+        print("No episodes to process.")
         return
 
-    # Skapa transcriber med podcast-specifik mapp
-    print(f"\n📁 Skapar mapp för: {podcast_title}")
+    # Create transcriber with podcast-specific folder
+    print(f"\n📁 Creating folder for: {podcast_title}")
     transcriber = PodcastTranscriber(podcast_name=podcast_title)
 
-    # Visa sammanfattning
-    print(f"\nÄldsta avsnitt: {episodes[-1]['published'].strftime('%d-%m-%Y') if episodes[-1]['published'] else 'Okänt datum'}")
-    print(f"Senaste avsnitt: {episodes[0]['published'].strftime('%d-%m-%Y') if episodes[0]['published'] else 'Okänt datum'}")
+    # Show summary
+    print(f"\nOldest episode: {episodes[-1]['published'].strftime('%Y-%m-%d') if episodes[-1]['published'] else 'Unknown date'}")
+    print(f"Newest episode: {episodes[0]['published'].strftime('%Y-%m-%d') if episodes[0]['published'] else 'Unknown date'}")
 
-    # Fråga användaren hur de vill filtrera
+    # Ask user how they want to filter
     mode_choice = get_user_choice(
-        "Vilka avsnitt vill du transkribera?",
-        ["Alla avsnitt", "Endast nya (ej tidigare transkriberade)", "Specifikt datumintervall"]
+        "Which episodes do you want to transcribe?",
+        ["All episodes", "Only new (not previously transcribed)", "Specific date range"]
     )
 
     filtered_episodes = []
 
-    if mode_choice == "Alla avsnitt":
+    if mode_choice == "All episodes":
         filtered_episodes = transcriber.filter_episodes(episodes, "all")
 
-    elif mode_choice == "Endast nya (ej tidigare transkriberade)":
+    elif mode_choice == "Only new (not previously transcribed)":
         filtered_episodes = transcriber.filter_episodes(episodes, "new")
 
         if not filtered_episodes:
-            print("\n✓ Alla avsnitt är redan transkriberade!")
+            print("\n✓ All episodes are already transcribed!")
             return
 
-    elif mode_choice == "Specifikt datumintervall":
-        print("\nAnge datumintervall (format: DD-MM-ÅÅÅÅ eller DD/MM/ÅÅÅÅ)")
+    elif mode_choice == "Specific date range":
+        print("\nEnter date range (format: DD-MM-YYYY or DD/MM/YYYY)")
 
         while True:
-            start_str = input("Från datum: ").strip()
+            start_str = input("From date: ").strip()
             start_date = parse_date(start_str)
             if start_date:
                 break
-            print("Ogiltigt datum, försök igen.")
+            print("Invalid date, try again.")
 
         while True:
-            end_str = input("Till datum: ").strip()
+            end_str = input("To date: ").strip()
             end_date = parse_date(end_str)
             if end_date:
-                # Sätt till slutet av dagen
+                # Set to end of day
                 end_date = end_date.replace(hour=23, minute=59, second=59)
                 break
-            print("Ogiltigt datum, försök igen.")
+            print("Invalid date, try again.")
 
         filtered_episodes = transcriber.filter_episodes(episodes, "date", start_date, end_date)
 
         if not filtered_episodes:
-            print("\nInga avsnitt hittades i det datumintervallet.")
+            print("\nNo episodes found in that date range.")
             return
 
-    # Fråga om sorteringsordning
+    # Ask about sorting order
     sort_choice = get_user_choice(
-        "I vilken ordning vill du bearbeta avsnitten?",
-        ["Börja med äldsta avsnittet", "Börja med senaste avsnittet"]
+        "In which order do you want to process the episodes?",
+        ["Start with oldest episode", "Start with newest episode"]
     )
 
-    if sort_choice == "Börja med äldsta avsnittet":
-        # Sortera äldst först (stigande datum)
+    if sort_choice == "Start with oldest episode":
+        # Sort oldest first (ascending date)
         filtered_episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=False)
-        sort_info = "äldsta → senaste"
+        sort_info = "oldest → newest"
     else:
-        # Sortera nyast först (fallande datum) - redan sorterat så, men gör det explicit
+        # Sort newest first (descending date) - already sorted that way, but make it explicit
         filtered_episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=True)
-        sort_info = "senaste → äldsta"
+        sort_info = "newest → oldest"
 
-    # Visa information
+    # Show information
     if filtered_episodes:
         first_ep = filtered_episodes[0]
         last_ep = filtered_episodes[-1]
-        print(f"\nSortering: {sort_info}")
-        print(f"Första avsnittet som bearbetas: {first_ep['title']}")
+        print(f"\nSorting: {sort_info}")
+        print(f"First episode to be processed: {first_ep['title']}")
         if first_ep.get('published'):
-            print(f"  Datum: {first_ep['published'].strftime('%d-%m-%Y')}")
-        print(f"Sista avsnittet som bearbetas: {last_ep['title']}")
+            print(f"  Date: {first_ep['published'].strftime('%Y-%m-%d')}")
+        print(f"Last episode to be processed: {last_ep['title']}")
         if last_ep.get('published'):
-            print(f"  Datum: {last_ep['published'].strftime('%d-%m-%Y')}")
+            print(f"  Date: {last_ep['published'].strftime('%Y-%m-%d')}")
 
-    # Bekräftelse
-    print(f"\n{len(filtered_episodes)} avsnitt kommer att laddas ner och transkriberas.")
-    confirm = input("Fortsätt? (j/n): ").strip().lower()
+    # Confirmation
+    print(f"\n{len(filtered_episodes)} episodes will be downloaded and transcribed.")
+    confirm = input("Continue? (y/n): ").strip().lower()
 
     if confirm not in ['j', 'ja', 'y', 'yes']:
-        print("Avbrutet.")
+        print("Cancelled.")
         return
 
-    # Kör transkribering
+    # Run transcription
     transcriber.process_episodes(filtered_episodes)
 
 
@@ -714,10 +741,10 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nAvbrutet av användare.")
+        print("\n\nCancelled by user.")
         sys.exit(0)
     except Exception as e:
-        print(f"\n\nOväntat fel: {e}")
+        print(f"\n\nUnexpected error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

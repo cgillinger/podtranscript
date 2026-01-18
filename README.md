@@ -1,37 +1,38 @@
 # Podcast Transcriber 🎙️→📝
 
-Ett Python-skript för att automatiskt ladda ner och transkribera podcasts från RSS-feeds med hjälp av OpenAI Whisper.
+A Python script to automatically download and transcribe podcasts from RSS feeds using OpenAI Whisper.
 
-## Funktioner
+## Features
 
-✅ **RSS Feed Support** - Hämta avsnitt från vilken podcast-RSS som helst
-✅ **Automatisk Nedladdning** - Laddar ner MP3-filer automatiskt
-✅ **Whisper Transkribering** - Använder OpenAI Whisper för högkvalitativ transkribering
-✅ **Auto-detektering av språk** - Whisper känner automatiskt igen alla språk
-✅ **Intelligenta Filnamn** - Smart S##E### namngivning baserat på iTunes-metadata
-✅ **Metadata-extraktion** - Extraherar säsong/episod från RSS-taggar ELLER titel
-✅ **Flexibel Filtrering** - Välj alla, nya, eller specifika datum
-✅ **Europeiskt Datumformat** - DD-MM-ÅÅÅÅ format
-✅ **State Management** - Håller koll på vad som redan transkriberarts
-✅ **Progress Tracking** - Visar nedladdnings- och transkriberingsframsteg
+✅ **RSS Feed Support** - Fetch episodes from any podcast RSS feed
+✅ **Automatic Download** - Downloads MP3 files automatically
+✅ **Whisper Transcription** - Uses OpenAI Whisper for high-quality transcription
+✅ **Auto Language Detection** - Whisper automatically recognizes all languages
+✅ **Smart Filenames** - Intelligent S##E### naming based on iTunes metadata
+✅ **Metadata Extraction** - Extracts season/episode from RSS tags OR title parsing
+✅ **Flexible Filtering** - Choose all, new, or specific date ranges
+✅ **European Date Format** - DD-MM-YYYY format support
+✅ **State Management** - Keeps track of already transcribed episodes
+✅ **Progress Tracking** - Shows download and transcription progress
+✅ **Multi-Podcast Support** - Each podcast gets its own organized folder
 
-## Systemkrav
+## System Requirements
 
-- **OS**: Linux Mint (eller annan Linux-distribution)
-- **Python**: 3.8 eller senare
-- **Disk**: Tillräckligt utrymme för ljudfiler och transkriptioner
-- **RAM**: Minst 4GB rekommenderas (Whisper använder lite minne)
+- **OS**: Linux Mint (or other Linux distribution)
+- **Python**: 3.8 or later
+- **Disk Space**: Sufficient space for audio files and transcriptions
+- **RAM**: At least 4GB recommended (Whisper uses some memory)
 
 ## Installation
 
-### Steg 1: Installera Python och pip
+### Step 1: Install Python and pip
 
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip python3-venv
 ```
 
-### Steg 2: Klona projektet från GitHub
+### Step 2: Clone the project from GitHub
 
 ```bash
 cd ~
@@ -39,146 +40,146 @@ git clone https://github.com/cgillinger/podtranscript.git
 cd podtranscript
 ```
 
-### Steg 3: Skapa virtuell miljö (rekommenderas)
+### Step 3: Create virtual environment (recommended)
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### Steg 4: Installera dependencies
+### Step 4: Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**OBS**: Första gången du kör skriptet kommer Whisper att ladda ner sin modell (ca 140MB för "base"-modellen).
+**NOTE**: The first time you run the script, Whisper will download its model (~140MB for the "base" model).
 
-### Steg 5: Gör skriptet körbart
+### Step 5: Make the script executable
 
 ```bash
 chmod +x podcast_transcriber.py
 ```
 
-## Användning
+## Usage
 
-### Grundläggande användning
+### Basic usage
 
 ```bash
 python3 podcast_transcriber.py
 ```
 
-Om du använder virtuell miljö:
+If using virtual environment:
 
 ```bash
 source venv/bin/activate
 python3 podcast_transcriber.py
 ```
 
-### Steg-för-steg guide
+### Step-by-step guide
 
-1. **Kör skriptet**
+1. **Run the script**
    ```bash
    python3 podcast_transcriber.py
    ```
 
-2. **Ange RSS-URL**
+2. **Enter RSS URL**
    ```
-   Ange RSS-URL för podcasten: https://example.com/podcast/feed.xml
-   ```
-
-3. **Välj filtreringsläge**
-   - **Alla avsnitt** - Laddar ner och transkriberar alla avsnitt
-   - **Endast nya** - Bara avsnitt som inte transkriberarts tidigare
-   - **Datumintervall** - Ange från- och till-datum
-
-4. **Ange datum (om du valde datumintervall)**
-   ```
-   Från datum: 01-01-2024
-   Till datum: 31-12-2024
-   ```
-   Accepterade format:
-   - DD-MM-ÅÅÅÅ (t.ex. 15-03-2024)
-   - DD/MM/ÅÅÅÅ (t.ex. 15/03/2024)
-   - DD.MM.ÅÅÅÅ (t.ex. 15.03.2024)
-
-5. **Välj sorteringsordning**
-   - **Börja med äldsta avsnittet** - Bearbetar från första till senaste (kronologisk ordning)
-   - **Börja med senaste avsnittet** - Bearbetar från senaste till första (omvänd ordning)
-
-   Skriptet visar vilka avsnitt som kommer först och sist:
-   ```
-   Sortering: äldsta → senaste
-   Första avsnittet som bearbetas: Season 1, Ep 1 - Pilot
-     Datum: 15-03-2015
-   Sista avsnittet som bearbetas: Season 5, Ep 83 - Latest Episode
-     Datum: 12-01-2026
+   Enter RSS URL for the podcast: https://example.com/podcast/feed.xml
    ```
 
-6. **Bekräfta och vänta**
-   - Skriptet visar hur många avsnitt som kommer bearbetas
-   - Bekräfta med 'j' för att fortsätta
-   - Vänta medan nedladdning och transkribering pågår
+3. **Choose filtering mode**
+   - **All episodes** - Download and transcribe all episodes
+   - **Only new** - Only episodes not previously transcribed
+   - **Date range** - Specify from and to dates
 
-### Exempel på användning
+4. **Enter dates (if you chose date range)**
+   ```
+   From date: 01-01-2024
+   To date: 31-12-2024
+   ```
+   Accepted formats:
+   - DD-MM-YYYY (e.g. 15-03-2024)
+   - DD/MM/YYYY (e.g. 15/03/2024)
+   - DD.MM.YYYY (e.g. 15.03.2024)
 
-#### Exempel 1: Alla avsnitt
+5. **Choose sorting order**
+   - **Start with oldest episode** - Process from first to latest (chronological order)
+   - **Start with latest episode** - Process from latest to first (reverse order)
+
+   The script shows which episodes will be processed first and last:
+   ```
+   Sorting: oldest → newest
+   First episode to process: Season 1, Ep 1 - Pilot
+     Date: 15-03-2015
+   Last episode to process: Season 5, Ep 83 - Latest Episode
+     Date: 12-01-2026
+   ```
+
+6. **Confirm and wait**
+   - The script shows how many episodes will be processed
+   - Confirm with 'j' to continue
+   - Wait while downloading and transcription is in progress
+
+### Usage Examples
+
+#### Example 1: All episodes
 ```bash
 $ python3 podcast_transcriber.py
 
-Ange RSS-URL för podcasten: https://podcast.example.com/feed.xml
+Enter RSS URL for the podcast: https://podcast.example.com/feed.xml
 
-Hämtar RSS-feed...
-✓ Hittade 50 avsnitt med ljudfiler
+Fetching RSS feed...
+✓ Found 50 episodes with audio files
 
-Vilka avsnitt vill du transkribera?
-  1. Alla avsnitt
-  2. Endast nya (ej tidigare transkriberade)
-  3. Specifikt datumintervall
+Which episodes do you want to transcribe?
+  1. All episodes
+  2. Only new (not previously transcribed)
+  3. Specific date range
 
-Ditt val: 1
+Your choice: 1
 
-50 avsnitt kommer att laddas ner och transkriberas.
-Fortsätt? (j/n): j
+50 episodes will be downloaded and transcribed.
+Continue? (y/n): y
 ```
 
-#### Exempel 2: Endast nya avsnitt
+#### Example 2: Only new episodes
 ```bash
-Ditt val: 2
+Your choice: 2
 
-✓ 5 nya avsnitt (av 50 totalt)
-5 avsnitt kommer att laddas ner och transkriberas.
+✓ 5 new episodes (out of 50 total)
+5 episodes will be downloaded and transcribed.
 ```
 
-#### Exempel 3: Datumintervall
+#### Example 3: Date range
 ```bash
-Ditt val: 3
+Your choice: 3
 
-Ange datumintervall (format: DD-MM-ÅÅÅÅ eller DD/MM/ÅÅÅÅ)
-Från datum: 01-01-2024
-Till datum: 31-03-2024
+Enter date range (format: DD-MM-YYYY or DD/MM/YYYY)
+From date: 01-01-2024
+To date: 31-03-2024
 
-✓ 12 avsnitt i datumintervallet
+✓ 12 episodes in the date range
 ```
 
-## Filstruktur
+## File Structure
 
-Efter körning skapas följande struktur:
+After running, the following structure is created:
 
 ```
 podcasts/
-├── Hello_From_The_Magic_Tavern/     # Varje podcast får sin egen mapp
-│   ├── audio/                       # Ljudfiler för denna podcast
+├── Hello_From_The_Magic_Tavern/     # Each podcast gets its own folder
+│   ├── audio/                       # Audio files for this podcast
 │   │   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.mp3
 │   │   ├── S05E082_2026-01-05_Previous_Episode.mp3
 │   │   └── ...
-│   ├── transcripts/                 # Transkriptioner för denna podcast
+│   ├── transcripts/                 # Transcriptions for this podcast
 │   │   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.txt
 │   │   ├── S05E082_2026-01-05_Previous_Episode.txt
 │   │   └── ...
-│   └── transcribed_episodes.json    # State-fil för denna podcast
+│   └── transcribed_episodes.json    # State file for this podcast
 │
-├── Another_Podcast/                 # Annan podcast i egen mapp
+├── Another_Podcast/                 # Another podcast in its own folder
 │   ├── audio/
 │   │   ├── E347_2024-03-22_Breaking_News.mp3
 │   │   └── ...
@@ -187,216 +188,226 @@ podcasts/
 │   │   └── ...
 │   └── transcribed_episodes.json
 │
-└── Swedish_Podcast/                 # Tredje podcast
+└── Swedish_Podcast/                 # Third podcast
     ├── audio/
     ├── transcripts/
     └── transcribed_episodes.json
 ```
 
-**Fördelar med mappstruktur:**
-- ✅ Varje podcast håller sig separat och organiserad
-- ✅ Lätt att hitta specifika podcasts
-- ✅ Varje podcast har sin egen historik (state-fil)
-- ✅ Kan transkribera flera olika podcasts utan sammanblandning
+**Folder structure advantages:**
+- ✅ Each podcast stays separate and organized
+- ✅ Easy to find specific podcasts
+- ✅ Each podcast has its own history (state file)
+- ✅ Can transcribe multiple different podcasts without mixing them up
 
-### Intelligenta Filnamn
+### Smart Filenames
 
-Skriptet använder ett **smart filnamnssystem** baserat på podcast RSS-metadata (iTunes-taggar och titelanalys):
+The script uses a **smart filename system** based on podcast RSS metadata (iTunes tags and title parsing):
 
-#### Format-prioritering
+#### Format Priority
 
-1. **Med säsong och episod**: `S05E083_2026-01-12_Episodtitel.mp3`
-   - Extraherar från `<itunes:season>` och `<itunes:episode>` taggar
-   - Eller parsar titel som "Season 5, Ep 83 - Titel"
-   - Exempel: `S02E015_2024-03-21_The_Future_of_AI.mp3`
+1. **With season and episode**: `S05E083_2026-01-12_Episode_Title.mp3`
+   - Extracts from `<itunes:season>` and `<itunes:episode>` tags
+   - Or parses title like "Season 5, Ep 83 - Title"
+   - Example: `S02E015_2024-03-21_The_Future_of_AI.mp3`
 
-2. **Endast episodnummer**: `E347_2024-03-22_Episodtitel.mp3`
-   - När bara episodnummer finns tillgängligt
-   - Exempel: `E347_2024-03-22_Breaking_News.mp3`
+2. **Episode number only**: `E347_2024-03-22_Episode_Title.mp3`
+   - When only episode number is available
+   - Example: `E347_2024-03-22_Breaking_News.mp3`
 
-3. **Speciella typer** (bonus/trailer): `BONUS_2026-01-08_Episodtitel.mp3`
-   - För avsnitt markerade som bonus eller trailer
-   - Exempel: `TRAILER_2024-01-01_Season_3_Trailer.mp3`
+3. **Special types** (bonus/trailer): `BONUS_2026-01-08_Episode_Title.mp3`
+   - For episodes marked as bonus or trailer
+   - Example: `TRAILER_2024-01-01_Season_3_Trailer.mp3`
 
-4. **Fallback** (datum + titel): `2024-02-14_Episodtitel.mp3`
-   - När ingen episode/season-metadata finns
-   - Exempel: `2024-02-14_Random_Podcast.mp3`
+4. **Fallback** (date + title): `2024-02-14_Episode_Title.mp3`
+   - When no episode/season metadata is available
+   - Example: `2024-02-14_Random_Podcast.mp3`
 
-#### Nummerpaddning
+#### Number Padding
 
-- **Säsonger**: 2 siffror (S01, S02, ..., S99)
-- **Episoder**: 3-4 siffror (E001, E023, E1234)
-  - Automatisk expansion för episoder över 999
+- **Seasons**: 2 digits (S01, S02, ..., S99)
+- **Episodes**: 3-4 digits (E001, E023, E1234)
+  - Automatic expansion for episodes over 999
 
-#### Titelrensning
+#### Title Sanitization
 
-Filnamnen rensas automatiskt:
-- Ogiltiga tecken tas bort (`<>:"/\|?*`)
-- Mellanslag ersätts med understreck
-- Max titellängd: 80 tecken
-- Datum i ISO 8601-format: `ÅÅÅÅ-MM-DD`
+Filenames are automatically sanitized:
+- Invalid characters removed (`<>:"/\|?*`)
+- Spaces replaced with underscores
+- Max title length: 80 characters
+- Date in ISO 8601 format: `YYYY-MM-DD`
 
-#### Verkliga exempel
+#### Real-world Examples
 
-**Hello From The Magic Tavern** (titeln innehåller "Season 5, Ep 83"):
+**Hello From The Magic Tavern** (title contains "Season 5, Ep 83"):
 ```
 Original: Season 5, Ep 83 - DQ in Pizza Hell (w/ Tim Ryder)
-Filnamn:  S05E083_2026-01-12_DQ_in_Pizza_Hell_(w_Tim_Ryder).mp3
+Filename: S05E083_2026-01-12_DQ_in_Pizza_Hell_(w_Tim_Ryder).mp3
 ```
 
-**Samma podcast, bonus-avsnitt**:
+**Same podcast, bonus episode**:
 ```
 Original: Patreon Unlock: Stargazing
-Filnamn:  BONUS_2026-01-08_Stargazing.mp3
+Filename: BONUS_2026-01-08_Stargazing.mp3
 ```
 
-**Podcast med iTunes-taggar**:
+**Podcast with iTunes tags**:
 ```
 Original: The Future of AI
 iTunes:   <itunes:season>2</itunes:season> <itunes:episode>15</itunes:episode>
-Filnamn:  S02E015_2024-03-21_The_Future_of_AI.mp3
+Filename: S02E015_2024-03-21_The_Future_of_AI.mp3
 ```
 
-**Daglig nyhetspodcast** (bara episodnummer):
+**Daily news podcast** (episode number only):
 ```
 Original: Episode 347 - Breaking News
-Filnamn:  E347_2024-03-22_Breaking_News.mp3
+Filename: E347_2024-03-22_Breaking_News.mp3
 ```
 
-### Transkriptionsfil-innehåll
+### Transcript File Contents
 
-Transkriptionsfiler innehåller metadata + transkription:
+Transcript files contain metadata + transcription:
 
 ```
-Titel: Season 5, Ep 83 - DQ in Pizza Hell (w/ Tim Ryder)
-Säsong: 5, Avsnitt: 83
-Typ: Full
-Publicerad: 12-01-2026
-Källa: https://example.com/episode.mp3
+Title: Season 5, Ep 83 - DQ in Pizza Hell (w/ Tim Ryder)
+Season: 5, Episode: 83
+Type: Full
+Published: 12-01-2026
+Source: https://example.com/episode.mp3
 
 ================================================================================
 
-[Här kommer transkriberingen från Whisper...]
+[Transcription from Whisper comes here...]
 ```
 
-## Språkhantering
+## Language Handling
 
-Whisper **auto-detekterar automatiskt** vilket språk som talas i podcasten!
+Whisper **automatically auto-detects** the language spoken in the podcast!
 
-- ✅ **Ingen konfiguration behövs** - Fungerar direkt
-- ✅ **Stödjer 99+ språk** - Svenska, engelska, spanska, etc.
-- ✅ **Hög noggrannhet** - Whispers språkdetektering är extremt tillförlitlig
-- ✅ **Blandat innehåll** - Kan transkribera både svenska och engelska podcasts med samma installation
+- ✅ **No configuration needed** - Works out of the box
+- ✅ **Supports 99+ languages** - Swedish, English, Spanish, etc.
+- ✅ **High accuracy** - Whisper's language detection is extremely reliable
+- ✅ **Mixed content** - Can transcribe both Swedish and English podcasts with the same installation
 
-**Exempel:**
-- Svensk podcast → Transkriberas på svenska automatiskt
-- Engelsk podcast (t.ex. Magic Tavern) → Transkriberas på engelska automatiskt
-- Flerspråkig podcast → Whisper väljer huvudspråket
+**Examples:**
+- Swedish podcast → Transcribed in Swedish automatically
+- English podcast (e.g. Magic Tavern) → Transcribed in English automatically
+- Multilingual podcast → Whisper chooses the primary language
 
-## Whisper-modeller
+## Whisper Models
 
-Skriptet använder "base"-modellen som standard, vilket ger en bra balans mellan hastighet och kvalitet.
+The script uses the "base" model by default, which provides a good balance between speed and quality.
 
-Tillgängliga modeller:
-- **tiny** - Snabbast, lägst kvalitet (~1GB RAM)
-- **base** - Snabb, god kvalitet (~1GB RAM) ⭐ **Standard**
-- **small** - Långsammare, bättre kvalitet (~2GB RAM)
-- **medium** - Långsam, mycket bra kvalitet (~5GB RAM)
-- **large** - Långsammast, bäst kvalitet (~10GB RAM)
+Available models:
+- **tiny** - Fastest, lowest quality (~1GB RAM)
+- **base** - Fast, good quality (~1GB RAM) ⭐ **Default**
+- **small** - Slower, better quality (~2GB RAM)
+- **medium** - Slow, very good quality (~5GB RAM)
+- **large** - Slowest, best quality (~10GB RAM)
 
-För att ändra modell, redigera `podcast_transcriber.py` rad ~174:
+To change the model, edit `podcast_transcriber.py` line ~219:
 ```python
-self.whisper_model = whisper.load_model("small")  # Ändra "base" till önskad modell
+self.whisper_model = whisper.load_model("small")  # Change "base" to desired model
 ```
 
-## Tips och tricks
+## Tips and Tricks
 
-### 💡 Kör i bakgrunden
+### 💡 Run in background
 
-För långa transkriberingsjobb:
+For long transcription jobs:
 ```bash
 nohup python3 podcast_transcriber.py > transcribe.log 2>&1 &
 ```
 
-### 💡 Endast nya avsnitt
+### 💡 Only new episodes
 
-Kör regelbundet med "Endast nya"-läget för att automatiskt hålla dig uppdaterad:
+Run regularly with "Only new" mode to automatically stay updated:
 ```bash
-# Lägg till i crontab för automatisk körning
+# Add to crontab for automatic execution
 0 6 * * * cd /path/to/podtranscript && ./podcast_transcriber.py
 ```
 
-### 💡 Batch-bearbetning
+### 💡 Batch processing
 
-Skriptet kan hantera många avsnitt - bara bekräfta och låt det köra!
+The script can handle many episodes - just confirm and let it run!
 
-### 💡 Spara diskutrymme
+### 💡 Save disk space
 
-Om diskutrymme är begränsat, radera ljudfiler efter transkribering:
+If disk space is limited, delete audio files after transcription:
 ```bash
-rm -rf podcasts/audio/*
+rm -rf podcasts/*/audio/*
 ```
-Transkriptionerna finns kvar och state-filen vet vad som redan gjorts.
+Transcriptions remain and the state file knows what's already done.
 
-## Felsökning
+## Troubleshooting
 
-### Problem: "Fel: Saknar nödvändigt bibliotek"
+### Problem: "Error: Missing required library"
 
-**Lösning**: Installera dependencies
+**Solution**: Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Problem: "Inga avsnitt hittades i feeden"
+### Problem: "No episodes found in feed"
 
-**Lösningar**:
-- Kontrollera att RSS-URL:en är korrekt
-- Testa URL:en i webbläsare
-- Vissa feeds kräver specifika headers
+**Solutions**:
+- Check that the RSS URL is correct
+- Test the URL in a web browser
+- Some feeds require specific headers
 
-### Problem: Whisper är långsamt
+### Problem: Whisper is slow
 
-**Lösningar**:
-- Använd mindre modell ("tiny" eller "base")
-- Stäng andra program för att frigöra RAM
-- Överväg GPU-acceleration (kräver CUDA-kompatibelt grafikkort)
+**Solutions**:
+- Use a smaller model ("tiny" or "base")
+- Close other programs to free up RAM
+- Consider GPU acceleration (requires CUDA-compatible graphics card)
 
-### Problem: "Memory Error" vid transkribering
+### Problem: "Memory Error" during transcription
 
-**Lösningar**:
-- Använd mindre modell ("tiny" istället för "base")
-- Stäng andra program
-- Transkribera färre avsnitt åt gången
+**Solutions**:
+- Use a smaller model ("tiny" instead of "base")
+- Close other programs
+- Transcribe fewer episodes at a time
 
-### Problem: Nedladdning misslyckas
+### Problem: Download fails
 
-**Lösningar**:
-- Kontrollera internetanslutning
-- Vissa podcasts kan ha geografiska begränsningar
-- Prova igen senare (servern kan vara upptagen)
+**Solutions**:
+- Check internet connection
+- Some podcasts may have geographic restrictions
+- Try again later (server may be busy)
 
-## Säkerhet och integritet
+## Security and Privacy
 
-- Skriptet laddar endast ner publikt tillgängliga podcast-avsnitt
-- Ingen data skickas till tredje part (förutom nedladdning från RSS-feed)
-- Whisper körs lokalt på din dator
-- State-filen sparas endast lokalt
+- The script only downloads publicly available podcast episodes
+- No data is sent to third parties (except downloading from the RSS feed)
+- Whisper runs locally on your computer
+- The state file is saved locally only
 
-## Licens
+## License
 
-MIT License - Fri att använda och modifiera
+MIT License - Free to use and modify
+
+See [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs
+- Suggest new features
+- Submit pull requests
 
 ## Support
 
-Om du stöter på problem:
-1. Kontrollera felsökningsavsnittet ovan
-2. Säkerställ att alla dependencies är installerade
-3. Kontrollera att Python-versionen är 3.8+
+If you encounter problems:
+1. Check the troubleshooting section above
+2. Ensure all dependencies are installed
+3. Verify Python version is 3.8+
+4. Open an issue on GitHub
 
-## Författare
+## Author
 
-Skapat med hjälp av Claude AI för automatisk podcast-transkribering.
+Created for automatic podcast transcription.
 
 ---
 
-**Lycka till med transkriberingen! 🎧📝**
+**Happy transcribing! 🎧📝**

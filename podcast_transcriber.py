@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 """
-Podcast Transcriber - Ladda ner och transkribera podcasts från RSS-feed
+Podcast Transcriber - Download and transcribe podcasts from RSS feeds
+
+This script automatically downloads podcast episodes from RSS feeds and transcribes
+them using OpenAI's Whisper speech recognition model. It supports:
+- Smart filename generation based on iTunes metadata (S##E### format)
+- Multiple podcasts in separate folders
+- State tracking to avoid re-transcribing episodes
+- Flexible filtering (all episodes, new only, date ranges)
+- Automatic language detection
+- Progress tracking for downloads and transcription
+
+Author: Podcast Transcriber Contributors
+License: MIT
 """
 
+# Standard library imports
 import os
 import sys
 import json
@@ -13,83 +26,176 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
+# Third-party library imports with error handling
 try:
-    import feedparser
-    import requests
-    import whisper
-    from dateutil import parser as date_parser
-    from tqdm import tqdm
+    import feedparser      # RSS/Atom feed parsing
+    import requests        # HTTP requests for downloading
+    import whisper         # OpenAI Whisper for speech-to-text
+    from dateutil import parser as date_parser  # Flexible date parsing
+    from tqdm import tqdm  # Progress bars for downloads
 except ImportError as e:
-    print(f"Fel: Saknar nödvändigt bibliotek. Kör: pip install -r requirements.txt")
-    print(f"Detaljer: {e}")
+    print(f"Error: Missing required library. Run: pip install -r requirements.txt")
+    print(f"Details: {e}")
     sys.exit(1)
 
 
 class PodcastTranscriber:
-    """Huvudklass för podcast-transkribering"""
+    """
+    Main class for podcast transcription workflow.
+
+    This class handles the complete lifecycle of podcast transcription:
+    1. RSS feed fetching and parsing
+    2. Metadata extraction (season/episode numbers from iTunes tags or titles)
+    3. File organization (separate folders per podcast)
+    4. Audio file downloading
+    5. Speech-to-text transcription using Whisper
+    6. State management (tracking which episodes are already transcribed)
+
+    Attributes:
+        base_dir: Base directory for all podcasts
+        work_dir: Working directory for current podcast
+        audio_dir: Directory for downloaded audio files
+        transcripts_dir: Directory for transcription text files
+        state_file: JSON file tracking transcribed episodes
+        state: Dictionary of transcribed episodes (loaded from state_file)
+        whisper_model: Lazy-loaded Whisper model for transcription
+    """
 
     def __init__(self, work_dir: str = "podcasts", podcast_name: Optional[str] = None):
         """
-        Initialisera transcriber.
+        Initialize the podcast transcriber.
+
+        Sets up directory structure for storing audio files, transcripts, and state.
+        Each podcast can have its own subdirectory to keep things organized.
 
         Args:
-            work_dir: Bas-katalog för alla podcasts
-            podcast_name: Namn på podcasten (används som undermapp)
+            work_dir: Base directory for all podcasts (default: "podcasts")
+            podcast_name: Name of the podcast (used as subdirectory name).
+                         If None, files go directly in work_dir.
+                         If provided, creates a sanitized subfolder.
+
+        Directory structure created:
+            podcasts/
+            └── Podcast_Name/
+                ├── audio/                    # Downloaded MP3 files
+                ├── transcripts/              # Transcription text files
+                └── transcribed_episodes.json # State tracking
         """
         self.base_dir = Path(work_dir)
 
-        # Om podcast_name anges, skapa undermapp för denna podcast
+        # Create podcast-specific subfolder if podcast name is provided
+        # This allows multiple podcasts to be managed separately
         if podcast_name:
-            # Sanera podcast-namnet för att göra det till ett giltigt mappnamn
+            # Sanitize the podcast name to make it a valid directory name
+            # (removes invalid characters, replaces spaces with underscores)
             safe_name = self._sanitize_filename(podcast_name)
             self.work_dir = self.base_dir / safe_name
         else:
             self.work_dir = self.base_dir
 
+        # Define subdirectories for audio and transcripts
         self.audio_dir = self.work_dir / "audio"
         self.transcripts_dir = self.work_dir / "transcripts"
         self.state_file = self.work_dir / "transcribed_episodes.json"
 
-        # Skapa mappar
+        # Create directories if they don't exist
+        # parents=True creates parent directories as needed
+        # exist_ok=True prevents errors if directories already exist
         self.audio_dir.mkdir(parents=True, exist_ok=True)
         self.transcripts_dir.mkdir(parents=True, exist_ok=True)
 
-        # Ladda state
+        # Load state from JSON file (tracks which episodes are already transcribed)
         self.state = self._load_state()
 
-        # Whisper modell (lazy load)
+        # Whisper model is loaded lazily (on first transcription)
+        # This saves memory and startup time if only downloading
         self.whisper_model = None
 
     def _load_state(self) -> Dict:
-        """Ladda sparat tillstånd från JSON-fil"""
+        """
+        Load transcription state from JSON file.
+
+        The state file tracks which episodes have already been transcribed,
+        preventing duplicate work. Each episode is identified by its GUID.
+
+        Returns:
+            Dictionary mapping episode GUIDs to transcription metadata,
+            or empty dict if file doesn't exist or is corrupted.
+        """
         if self.state_file.exists():
             try:
                 with open(self.state_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except json.JSONDecodeError:
-                print("Varning: Kunde inte läsa state-fil, skapar ny...")
+                print("Warning: Could not read state file, creating new one...")
                 return {}
         return {}
 
     def _save_state(self):
-        """Spara tillstånd till JSON-fil"""
+        """
+        Save transcription state to JSON file.
+
+        Persists the current state to disk, recording which episodes have been
+        transcribed along with their metadata (title, dates, filenames, etc.).
+        """
         with open(self.state_file, 'w', encoding='utf-8') as f:
             json.dump(self.state, f, indent=2, ensure_ascii=False)
 
     def _sanitize_filename(self, name: str) -> str:
-        """Rensa filnamn från ogiltiga tecken"""
-        # Ta bort/ersätt ogiltiga tecken
+        """
+        Sanitize a string to make it safe for use as a filename.
+
+        Removes or replaces characters that are invalid in filenames on
+        most filesystems (Windows, macOS, Linux).
+
+        Args:
+            name: Raw string (podcast name, episode title, etc.)
+
+        Returns:
+            Sanitized string safe for use as filename/directory name.
+            Limited to 200 characters.
+
+        Examples:
+            "Hello: World?" -> "Hello_World"
+            "Season 5 / Episode 3" -> "Season_5__Episode_3"
+        """
+        # Remove invalid filename characters: < > : " / \ | ? *
         name = re.sub(r'[<>:"/\\|?*]', '', name)
+        # Replace whitespace sequences with single underscore
         name = re.sub(r'\s+', '_', name.strip())
-        # Begränsa längd
+        # Limit length to prevent filesystem issues
         return name[:200]
 
     def _extract_episode_metadata(self, entry) -> Dict[str, Optional[str]]:
         """
-        Extrahera episode/season metadata från RSS-entry.
+        Extract episode/season metadata from RSS entry.
 
-        Försöker först iTunes-taggar, sedan parsing av titel.
-        Returnerar dict med 'season', 'episode', 'episode_type', 'clean_title'
+        Tries multiple methods to extract metadata in order of preference:
+        1. iTunes podcast tags (<itunes:season>, <itunes:episode>)
+        2. Title parsing (e.g., "Season 5, Ep 83 - Title")
+        3. Episode type detection (bonus, trailer)
+
+        This dual approach ensures compatibility with podcasts that:
+        - Use proper iTunes tags (ideal)
+        - Include metadata in titles (common)
+        - Have minimal metadata (fallback)
+
+        Args:
+            entry: feedparser entry object representing one episode
+
+        Returns:
+            Dictionary with keys:
+                'season': Season number (int) or None
+                'episode': Episode number (int) or None
+                'episode_type': Type string ('bonus', 'trailer', 'full') or None
+                'clean_title': Episode title with season/episode info removed
+
+        Examples:
+            Input: "Season 5, Ep 83 - Pizza Hell"
+            Output: {'season': 5, 'episode': 83, 'clean_title': 'Pizza Hell'}
+
+            Input: Entry with <itunes:season>2</itunes:season>
+            Output: {'season': 2, 'episode': 15, ...}
         """
         metadata = {
             'season': None,

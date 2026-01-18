@@ -167,18 +167,37 @@ Efter körning skapas följande struktur:
 
 ```
 podcasts/
-├── audio/                          # Nedladdade MP3-filer
-│   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.mp3
-│   ├── E347_2024-03-22_Breaking_News.mp3
-│   ├── BONUS_2026-01-08_Stargazing.mp3
-│   └── ...
-├── transcripts/                    # Transkriberade textfiler
-│   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.txt
-│   ├── E347_2024-03-22_Breaking_News.txt
-│   ├── BONUS_2026-01-08_Stargazing.txt
-│   └── ...
-└── transcribed_episodes.json      # State-fil (spårar vad som transkriberrats)
+├── Hello_From_The_Magic_Tavern/     # Varje podcast får sin egen mapp
+│   ├── audio/                       # Ljudfiler för denna podcast
+│   │   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.mp3
+│   │   ├── S05E082_2026-01-05_Previous_Episode.mp3
+│   │   └── ...
+│   ├── transcripts/                 # Transkriptioner för denna podcast
+│   │   ├── S05E083_2026-01-12_DQ_in_Pizza_Hell.txt
+│   │   ├── S05E082_2026-01-05_Previous_Episode.txt
+│   │   └── ...
+│   └── transcribed_episodes.json    # State-fil för denna podcast
+│
+├── Another_Podcast/                 # Annan podcast i egen mapp
+│   ├── audio/
+│   │   ├── E347_2024-03-22_Breaking_News.mp3
+│   │   └── ...
+│   ├── transcripts/
+│   │   ├── E347_2024-03-22_Breaking_News.txt
+│   │   └── ...
+│   └── transcribed_episodes.json
+│
+└── Swedish_Podcast/                 # Tredje podcast
+    ├── audio/
+    ├── transcripts/
+    └── transcribed_episodes.json
 ```
+
+**Fördelar med mappstruktur:**
+- ✅ Varje podcast håller sig separat och organiserad
+- ✅ Lätt att hitta specifika podcasts
+- ✅ Varje podcast har sin egen historik (state-fil)
+- ✅ Kan transkribera flera olika podcasts utan sammanblandning
 
 ### Intelligenta Filnamn
 

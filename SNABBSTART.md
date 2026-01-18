@@ -40,9 +40,20 @@ python3 podcast_transcriber.py
 
 ## 📁 Resultat
 
-Dina filer hamnar i:
-- **Ljudfiler**: `podcasts/audio/`
-- **Transkriptioner**: `podcasts/transcripts/`
+Varje podcast får sin egen mapp:
+```
+podcasts/
+├── Hello_From_The_Magic_Tavern/
+│   ├── audio/          # MP3-filer
+│   ├── transcripts/    # Textfiler
+│   └── transcribed_episodes.json
+└── Another_Podcast/
+    ├── audio/
+    ├── transcripts/
+    └── transcribed_episodes.json
+```
+
+**Fördel:** Flera podcasts håller sig separata och organiserade!
 
 ### Filnamnsformat
 

@@ -28,8 +28,24 @@ except ImportError as e:
 class PodcastTranscriber:
     """Huvudklass för podcast-transkribering"""
 
-    def __init__(self, work_dir: str = "podcasts"):
-        self.work_dir = Path(work_dir)
+    def __init__(self, work_dir: str = "podcasts", podcast_name: Optional[str] = None):
+        """
+        Initialisera transcriber.
+
+        Args:
+            work_dir: Bas-katalog för alla podcasts
+            podcast_name: Namn på podcasten (används som undermapp)
+        """
+        self.base_dir = Path(work_dir)
+
+        # Om podcast_name anges, skapa undermapp för denna podcast
+        if podcast_name:
+            # Sanera podcast-namnet för att göra det till ett giltigt mappnamn
+            safe_name = self._sanitize_filename(podcast_name)
+            self.work_dir = self.base_dir / safe_name
+        else:
+            self.work_dir = self.base_dir
+
         self.audio_dir = self.work_dir / "audio"
         self.transcripts_dir = self.work_dir / "transcripts"
         self.state_file = self.work_dir / "transcribed_episodes.json"
@@ -145,8 +161,13 @@ class PodcastTranscriber:
 
         return metadata
 
-    def fetch_feed(self, rss_url: str) -> List[Dict]:
-        """Hämta och parsa RSS-feed"""
+    def fetch_feed(self, rss_url: str) -> Tuple[str, List[Dict]]:
+        """
+        Hämta och parsa RSS-feed.
+
+        Returns:
+            Tuple med (podcast_title, episodes_list)
+        """
         print(f"\nHämtar RSS-feed från {rss_url}...")
 
         try:
@@ -157,7 +178,11 @@ class PodcastTranscriber:
 
             if not feed.entries:
                 print("Fel: Inga avsnitt hittades i feeden")
-                return []
+                return ("Unknown Podcast", [])
+
+            # Extrahera podcast-titel från feed
+            podcast_title = feed.feed.get('title', 'Unknown Podcast')
+            print(f"📻 Podcast: {podcast_title}")
 
             episodes = []
             for entry in feed.entries:
@@ -207,11 +232,11 @@ class PodcastTranscriber:
             episodes.sort(key=lambda x: x['published'] or datetime.min, reverse=True)
 
             print(f"✓ Hittade {len(episodes)} avsnitt med ljudfiler")
-            return episodes
+            return (podcast_title, episodes)
 
         except Exception as e:
             print(f"Fel vid hämtning av RSS-feed: {e}")
-            return []
+            return ("Unknown Podcast", [])
 
     def filter_episodes(self, episodes: List[Dict], mode: str,
                        start_date: Optional[datetime] = None,
@@ -479,15 +504,19 @@ def main():
         print("Fel: Ingen URL angiven")
         return
 
-    # Skapa transcriber
-    transcriber = PodcastTranscriber()
+    # Skapa temporär transcriber för att hämta feed-info
+    temp_transcriber = PodcastTranscriber()
 
-    # Hämta avsnitt
-    episodes = transcriber.fetch_feed(rss_url)
+    # Hämta podcast-titel och avsnitt
+    podcast_title, episodes = temp_transcriber.fetch_feed(rss_url)
 
     if not episodes:
         print("Inga avsnitt att bearbeta.")
         return
+
+    # Skapa transcriber med podcast-specifik mapp
+    print(f"\n📁 Skapar mapp för: {podcast_title}")
+    transcriber = PodcastTranscriber(podcast_name=podcast_title)
 
     # Visa sammanfattning
     print(f"\nÄldsta avsnitt: {episodes[-1]['published'].strftime('%d-%m-%Y') if episodes[-1]['published'] else 'Okänt datum'}")

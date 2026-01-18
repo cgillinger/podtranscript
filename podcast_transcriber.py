@@ -352,8 +352,7 @@ class PodcastTranscriber:
             print(f"  ↳ Transkriberar: {audio_path.name}...")
             result = self.whisper_model.transcribe(
                 str(audio_path),
-                language="sv",  # Svenskt språk
-                verbose=False
+                verbose=False  # Auto-detekterar språk
             )
 
             # Spara transkription

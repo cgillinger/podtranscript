@@ -7,6 +7,7 @@ Ett Python-skript för att automatiskt ladda ner och transkribera podcasts från
 ✅ **RSS Feed Support** - Hämta avsnitt från vilken podcast-RSS som helst
 ✅ **Automatisk Nedladdning** - Laddar ner MP3-filer automatiskt
 ✅ **Whisper Transkribering** - Använder OpenAI Whisper för högkvalitativ transkribering
+✅ **Auto-detektering av språk** - Whisper känner automatiskt igen alla språk
 ✅ **Intelligenta Filnamn** - Smart S##E### namngivning baserat på iTunes-metadata
 ✅ **Metadata-extraktion** - Extraherar säsong/episod från RSS-taggar ELLER titel
 ✅ **Flexibel Filtrering** - Välj alla, nya, eller specifika datum
@@ -245,6 +246,20 @@ Källa: https://example.com/episode.mp3
 
 [Här kommer transkriberingen från Whisper...]
 ```
+
+## Språkhantering
+
+Whisper **auto-detekterar automatiskt** vilket språk som talas i podcasten!
+
+- ✅ **Ingen konfiguration behövs** - Fungerar direkt
+- ✅ **Stödjer 99+ språk** - Svenska, engelska, spanska, etc.
+- ✅ **Hög noggrannhet** - Whispers språkdetektering är extremt tillförlitlig
+- ✅ **Blandat innehåll** - Kan transkribera både svenska och engelska podcasts med samma installation
+
+**Exempel:**
+- Svensk podcast → Transkriberas på svenska automatiskt
+- Engelsk podcast (t.ex. Magic Tavern) → Transkriberas på engelska automatiskt
+- Flerspråkig podcast → Whisper väljer huvudspråket
 
 ## Whisper-modeller
 
